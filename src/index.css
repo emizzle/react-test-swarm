@@ -1,0 +1,8 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: sans-serif;
+}
+.errors{color:red;}
+.infos{color:#008514;}
+.errors, .infos {white-space: pre-line;}
