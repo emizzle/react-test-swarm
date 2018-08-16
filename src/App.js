@@ -1,65 +1,88 @@
 import React, { Component } from 'react';
 import logo from './logo.svg';
-import './App.css';
-import swarmgw from 'swarmgw';
-import expect from 'expect'
+import './css/App.css';
+import SwarmGW from 'swarmgw';
+import expect from 'expect';
+import { ToggleButtonGroup, ToggleButton, ButtonToolbar, ButtonGroup, Button, ListGroup, ListGroupItem, PageHeader } from 'react-bootstrap';
 
 class App extends Component {
   constructor(props, context) {
     super(props);
-    this.swarm = swarmgw();
+    this.swarm = new SwarmGW();
     this.state = {
-      isLocal: false,
-      errors:[],
-      infos:[]
+      gateway: 'https://swarm-gateways.net',
+      errors: [],
+      infos: []
     };
   }
 
-  appendError(error){
+  appendError(error) {
     let errors = this.state.errors;
-    errors.push(<div>[{this.state.isLocal ? 'http://localhost:8500' : 'https://swarm-gateways.net'}]: {error}</div>);
+    errors.push(<div key={`errors_${errors.length}`}>[{this.state.gateway}]: {error}</div>);
     this.setState({ errors: errors });
   }
-  appendInfo(info){
+  appendInfo(info) {
     let infos = this.state.infos;
-    infos.push(<div>[{this.state.isLocal ? 'http://localhost:8500' : 'https://swarm-gateways.net'}]: {info}</div>);
+    infos.push(<div key={`infos_${infos.length}`}>[{this.state.gateway}]: {info}</div>);
     this.setState({ infos: infos });
   }
 
-  handleClick(e) {
-    let hash;
+  handleUpDownClick(e) {
     const storedData = 'Hello from swarmgw!';
-    // This should output the hash: 931cc5a6bd57724ffd1adefc0ea6b4f0235497fca9e4f9ae4029476bcb51a8c6
-    this.swarm.put(storedData, (err, ret) => {
+
+    this.appendInfo('Testing upload/download...');
+    this.swarm.putFile(storedData, (err, hash) => {
       if (err) {
-        expect(err).toNotExist('Error during swarm upload');
-        this.appendError('Failed to upload: ' + err);
-      } else {
-        expect(ret).toEqual('36538034544401c810ec7535d8e789df5d6cd9bfe80b30207ab22b99c0932a03');
-        this.appendInfo('Swarm hash: ' + ret);
-        hash = ret;
+        this.appendError('Failed to upload: ' + JSON.stringify(err));
+      }
+      if (hash) {
+        expect(hash).toEqual('36538034544401c810ec7535d8e789df5d6cd9bfe80b30207ab22b99c0932a03');
+        this.appendInfo('Swarm hash: ' + hash);
 
         // This should output the content: Hello from swarmgw!
-        this.swarm.get('bzz-raw://' + hash, (err, ret) => {
+        this.swarm.get('bzz-raw://' + hash, (err, result) => {
           if (err) {
             expect(err).toNotExist('Error during swarm upload');
             this.appendError('Failed to download: ' + err);
           } else {
-            expect(ret).toEqual(storedData);
-            this.appendInfo('Downloaded: ' + ret);
+            expect(result).toEqual(storedData);
+            this.appendInfo('Downloaded: ' + result);
           }
         })
       }
     });
-
-    
-
   }
 
-  toggleNode(e){
-    const isLocal = !Boolean(this.state.isLocal);
-    this.swarm = swarmgw(isLocal ? 'http://localhost:8500' : 'https://swarm-gateways.net');
-    this.setState({ isLocal: isLocal });
+  handleIsAvailClick(e) {
+    this.appendInfo('Testing if swarm is available...');
+    this.swarm.isAvailable((err, isAvailable) => {
+      if(err){
+        this.appendError('Error on isAvailable: ' + err);
+      }
+      else{
+        expect(isAvailable).toEqual(true);
+        this.appendInfo('Swarm is available');
+      }
+    });
+  }
+
+  toggleNode(e) {
+    //const isLocal = !Boolean(this.state.isLocal);
+    //this.swarm.gateway = (isLocal ? 'http://localhost:8500' : 'https://swarm-gateways.net');
+    this.swarm.gateway = e;
+    this.setState({ gateway: e });
+  }
+
+  handleUpload(e) {
+    this.swarm.putDirectory(__dirname, (err, hash) => {
+      if(err){
+        this.appendError('Error on isAvailable: ' + err);
+      }
+      else{
+        expect(hash).toExist('hash returned from swarm is null!')
+        this.appendInfo('Directory uploaded to ' + hash);
+      }
+    });
   }
 
   render() {
@@ -68,14 +91,38 @@ class App extends Component {
         <header className="App-header">
           <img src={logo} className="App-logo" alt="logo" />
           <h1 className="App-title">Welcome to React</h1>
+          <ButtonToolbar>
+            <ToggleButtonGroup
+              type="radio"
+              name="gateway"
+              onChange={(e) => this.toggleNode(e)}
+              value={this.state.gateway}
+            >
+              <ToggleButton key="0" value="https://swarm-gateways.net">https://swarm-gateways.net</ToggleButton>
+              <ToggleButton key="1" value="http://localhost:8500">http://localhost:8500</ToggleButton>
+            </ToggleButtonGroup>
+          </ButtonToolbar>
         </header>
-        <p className="App-intro">
-          Using swarm node {this.state.isLocal ? 'http://localhost:8500' : 'https://swarm-gateways.net'}
-        </p>
-        <button onClick={(e) => this.toggleNode(e)}>Use {this.state.isLocal ? 'https://swarm-gateways.net' : 'http://localhost:8500'} instead</button>
-        <button onClick={(e) => this.handleClick(e)}>Test swarm</button>
-        <div className="errors">{this.state.errors}</div>
-        <div className="infos">{this.state.infos}</div>
+        <div className="container">
+          <PageHeader>
+            Test Suite <small>Using {this.state.gateway}</small>
+          </PageHeader>
+          <ButtonGroup>
+            <Button onClick={(e) => this.handleIsAvailClick(e)}>isAvailable</Button>
+            <Button onClick={(e) => this.handleUpDownClick(e)}>upload/download</Button>
+            <Button onClick={(e) => this.handleUpload(e)} disabled>directory upload (doesn't work in the browser)</Button>
+          </ButtonGroup>
+          <ListGroup className="errors">
+            {this.state.errors.map((error, idx) => {
+              return <ListGroupItem key={idx}>{error}</ListGroupItem>;
+            })}
+          </ListGroup>
+          <ListGroup className="infos">
+            {this.state.infos.map((info, idx) => {
+              return <ListGroupItem key={idx}>{info}</ListGroupItem>;
+            })}
+          </ListGroup>
+        </div>
       </div>
     );
   }
