@@ -1,14 +1,14 @@
 import React, { Component } from 'react';
 import logo from './logo.svg';
 import './css/App.css';
-import SwarmGW from 'swarmgw';
+import _SwarmJS from 'swarmjs';
 import expect from 'expect';
 import { ToggleButtonGroup, ToggleButton, ButtonToolbar, ButtonGroup, Button, ListGroup, ListGroupItem, PageHeader } from 'react-bootstrap';
 
 class App extends Component {
   constructor(props, context) {
     super(props);
-    this.swarm = new SwarmGW();
+    this.swarm = new _SwarmJS();
     this.state = {
       gateway: 'https://swarm-gateways.net',
       errors: [],
@@ -31,7 +31,7 @@ class App extends Component {
     const storedData = 'Hello from swarmgw!';
 
     this.appendInfo('Testing upload/download...');
-    this.swarm.putFile(storedData, (err, hash) => {
+    this.swarm.uploadRaw(storedData, (err, hash) => {
       if (err) {
         this.appendError('Failed to upload: ' + JSON.stringify(err));
       }
@@ -40,7 +40,7 @@ class App extends Component {
         this.appendInfo('Swarm hash: ' + hash);
 
         // This should output the content: Hello from swarmgw!
-        this.swarm.get('bzz-raw://' + hash, (err, result) => {
+        this.swarm.downloadRaw(hash, (err, result) => {
           if (err) {
             expect(err).toNotExist('Error during swarm upload');
             this.appendError('Failed to download: ' + err);
