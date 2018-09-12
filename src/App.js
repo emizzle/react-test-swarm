@@ -1,14 +1,14 @@
 import React, { Component } from 'react';
 import logo from './logo.svg';
 import './css/App.css';
-import _SwarmJS from 'swarmjs';
+import _SwarmAPI from 'swarm-api';
 import expect from 'expect';
 import { ToggleButtonGroup, ToggleButton, ButtonToolbar, ButtonGroup, Button, ListGroup, ListGroupItem, PageHeader } from 'react-bootstrap';
 
 class App extends Component {
   constructor(props, context) {
     super(props);
-    this.swarm = new _SwarmJS();
+    this.swarm = new _SwarmAPI();
     this.state = {
       gateway: 'https://swarm-gateways.net',
       errors: [],
